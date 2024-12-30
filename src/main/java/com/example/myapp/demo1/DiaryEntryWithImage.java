@@ -9,10 +9,10 @@ public class DiaryEntryWithImage implements Serializable {
     private final LocalDateTime entryTime;
     private String title;
     private String content;
-    private String mood;
+    private MoodTracker.Mood mood;;
     private String imagePath;
 
-    public DiaryEntryWithImage(String title, String content, String mood, String imagePath) {
+    public DiaryEntryWithImage(String title, String content, MoodTracker.Mood mood, String imagePath) {
         this.entryTime = LocalDateTime.now();
         this.title = title;
         this.content = content;
@@ -44,12 +44,12 @@ public class DiaryEntryWithImage implements Serializable {
         this.content = content;
     }
 
-    public String getMood() {
-        return mood;
+    public void setMood(MoodTracker.Mood mood) {
+        this.mood = mood;
     }
 
-    public void setMood(String mood) {
-        this.mood = mood;
+    public MoodTracker.Mood getMood() {
+        return mood;
     }
 
     public String getImagePath() {

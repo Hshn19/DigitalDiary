@@ -13,6 +13,8 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 
 public class demo1 extends Application {
@@ -107,20 +109,15 @@ public class demo1 extends Application {
         editButton.setOnAction(event -> openEditEntryDialog(diaryListView.getSelectionModel().getSelectedItem()));
 
         Button deleteButton = new Button("Delete Entry");
-        deleteButton.setOnAction(event -> {
-            DiaryEntryWithImage selectedEntry = diaryListView.getSelectionModel().getSelectedItem();
-            if (selectedEntry != null) {
-                recycleBinFeature.moveToRecycleBin(diaryEntries, selectedEntry);
-            } else {
-                showAlert(Alert.AlertType.WARNING, "Delete Error", "Please select an entry to delete.");
-            }
-        });
+        deleteButton.setOnAction(event -> deleteSelectedEntry(diaryListView));
+
 
         Button recycleBinButton = new Button("Recycle Bin");
         recycleBinButton.setOnAction(event -> recycleBinFeature.openRecycleBinDialog(diaryEntries));
 
         Button moodTrackerButton = new Button("Mood Tracker");
-        moodTrackerButton.setOnAction(event -> new MoodTracker(diaryEntries).openMoodTrackerDialog());
+        moodTrackerButton.setOnAction(event -> openMoodTrackerDialog());
+
 
         HBox buttonBox = new HBox(10, addButton, editButton, deleteButton, recycleBinButton, moodTrackerButton);
 
@@ -143,10 +140,10 @@ public class demo1 extends Application {
 
         TextArea contentArea = new TextArea();
         contentArea.setPromptText("Content");
-
-        ComboBox<String> moodComboBox = new ComboBox<>();
-        moodComboBox.getItems().addAll("Happy 😊", "Sad 😢", "Neutral 😐");
+        ComboBox<MoodTracker.Mood> moodComboBox = new ComboBox<>();
+        moodComboBox.getItems().addAll(MoodTracker.Mood.values());
         moodComboBox.setPromptText("Select Mood");
+
 
         Button selectImageButton = new Button("Select Image");
         Label selectedImageLabel = new Label("No image selected");
@@ -170,16 +167,17 @@ public class demo1 extends Application {
             try {
                 String title = titleField.getText();
                 String content = contentArea.getText();
-                String mood = moodComboBox.getValue();
+                MoodTracker.Mood selectedMood = moodComboBox.getValue();
 
-                if (title.isEmpty() || content.isEmpty() || mood == null) {
+                if (title.isEmpty() || content.isEmpty() || selectedMood == null) {
                     showAlert(Alert.AlertType.ERROR, "Validation Error", "All fields must be filled.");
                 } else {
-                    DiaryEntryWithImage newEntry = new DiaryEntryWithImage(title, content, mood, selectedImagePath[0]);
+                    DiaryEntryWithImage newEntry = new DiaryEntryWithImage(title, content, selectedMood, selectedImagePath[0]);
                     diaryEntries.add(newEntry);
                     DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries));
                     dialog.close();
                 }
+
             } catch (Exception e) {
                 showAlert(Alert.AlertType.ERROR, "Error", "An error occurred while adding the entry: " + e.getMessage());
             }
@@ -211,9 +209,9 @@ public class demo1 extends Application {
 
         TextField titleField = new TextField(entry.getTitle());
         TextArea contentArea = new TextArea(entry.getContent());
-        ComboBox<String> moodComboBox = new ComboBox<>();
-        moodComboBox.getItems().addAll("Happy 😊", "Sad 😢", "Neutral 😐");
-        moodComboBox.setValue(entry.getMood());
+        ComboBox<MoodTracker.Mood> moodComboBox = new ComboBox<>();
+        moodComboBox.getItems().addAll(MoodTracker.Mood.values());
+
 
         Button selectImageButton = new Button("Select Image");
         Label selectedImageLabel = new Label("Current Image: " + (entry.getImagePath() != null ? entry.getImagePath() : "No image selected"));
@@ -236,15 +234,15 @@ public class demo1 extends Application {
             try {
                 String title = titleField.getText();
                 String content = contentArea.getText();
-                String mood = moodComboBox.getValue();
+                MoodTracker.Mood selectedMood = moodComboBox.getValue();
 
-                if (title.isEmpty() || content.isEmpty() || mood == null) {
+                if (title.isEmpty() || content.isEmpty() || selectedMood == null) {
                     showAlert(Alert.AlertType.ERROR, "Validation Error", "All fields must be filled.");
                 } else {
                     // Update the entry with new values
                     entry.setTitle(title);
                     entry.setContent(content);
-                    entry.setMood(mood);
+                    entry.setMood(selectedMood);
                     entry.setImagePath(selectedImagePath[0]); // Update image path
 
                     // Save updated entries
@@ -254,6 +252,7 @@ public class demo1 extends Application {
             } catch (Exception e) {
                 showAlert(Alert.AlertType.ERROR, "Error", "An error occurred while editing the entry: " + e.getMessage());
             }
+
         });
 
         layout.getChildren().addAll(new Label("Title:"), titleField,
@@ -279,8 +278,10 @@ public class demo1 extends Application {
 
     private void openMoodTrackerDialog() {
         MoodTracker moodTracker = new MoodTracker(diaryEntries);
-        moodTracker.openMoodTrackerDialog();
+        moodTracker.showMoodTrackerDialog();
     }
+
+
 
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);

@@ -2,87 +2,116 @@ package com.example.myapp.demo1;
 
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MoodTracker {
 
     private final ObservableList<DiaryEntryWithImage> diaryEntries;
 
+    public enum Mood {
+        HAPPY, EXCITED, CONTENT, NEUTRAL, TIRED, STRESSED, SAD, ANGRY;
+
+        public <V, K> Map<K,V> toUpperCase() {
+            return Map.of();
+        }
+
+        public String toLowerCase() {
+            return "";
+        }
+    }
+
     public MoodTracker(ObservableList<DiaryEntryWithImage> diaryEntries) {
         this.diaryEntries = diaryEntries;
     }
 
-    public void openMoodTrackerDialog() {
+    public void showMoodTrackerDialog() {
         Stage dialog = new Stage();
         dialog.setTitle("Mood Tracker");
 
         VBox layout = new VBox(10);
         layout.setPadding(new javafx.geometry.Insets(10));
 
-        // Date-Time Pickers
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        ComboBox<LocalDateTime> startDateTimePicker = new ComboBox<>();
-        ComboBox<LocalDateTime> endDateTimePicker = new ComboBox<>();
+        ComboBox<LocalDate> startDatePicker = new ComboBox<>();
+        ComboBox<LocalDate> endDatePicker = new ComboBox<>();
 
-        startDateTimePicker.setPromptText("Start Date & Time");
-        endDateTimePicker.setPromptText("End Date & Time");
+        startDatePicker.setPromptText("Start Date");
+        endDatePicker.setPromptText("End Date");
 
-        // Populate available timestamps
+        // Populate date pickers with available dates from diary entries
         for (DiaryEntryWithImage entry : diaryEntries) {
-            startDateTimePicker.getItems().add(entry.getEntryTime());
-            endDateTimePicker.getItems().add(entry.getEntryTime());
+            LocalDate entryDate = entry.getEntryTime().toLocalDate();
+            if (!startDatePicker.getItems().contains(entryDate)) {
+                startDatePicker.getItems().add(entryDate);
+                endDatePicker.getItems().add(entryDate);
+            }
         }
 
         Button trackButton = new Button("Track Mood");
-        Label resultLabel = new Label();
+        trackButton.setOnAction(event -> showMoodChart(startDatePicker.getValue(), endDatePicker.getValue()));
 
-        // Track Mood Button Action
-        trackButton.setOnAction(event -> {
-            LocalDateTime startDateTime = startDateTimePicker.getValue();
-            LocalDateTime endDateTime = endDateTimePicker.getValue();
+        layout.getChildren().addAll(new Label("Select Date Range:"), startDatePicker, endDatePicker, trackButton);
 
-            if (startDateTime == null || endDateTime == null) {
-                showAlert(Alert.AlertType.ERROR, "Date-Time Error", "Please select both start and end date-times.");
-                return;
-            }
-
-            if (startDateTime.isAfter(endDateTime)) {
-                showAlert(Alert.AlertType.ERROR, "Date-Time Range Error", "Start date-time cannot be after end date-time.");
-                return;
-            }
-
-            int happyCount = 0;
-            int sadCount = 0;
-            int neutralCount = 0;
-
-            for (DiaryEntryWithImage entry : diaryEntries) {
-                LocalDateTime entryTimestamp = entry.getEntryTime();
-                if (!entryTimestamp.isBefore(startDateTime) && !entryTimestamp.isAfter(endDateTime)) {
-                    switch (entry.getMood()) {
-                        case "Happy 😊" -> happyCount++;
-                        case "Sad 😢" -> sadCount++;
-                        case "Neutral 😐" -> neutralCount++;
-                    }
-                }
-            }
-
-            resultLabel.setText(String.format("Moods from %s to %s:\nHappy: %d\nSad: %d\nNeutral: %d",
-                    startDateTime.format(formatter),
-                    endDateTime.format(formatter),
-                    happyCount, sadCount, neutralCount));
-        });
-
-        layout.getChildren().addAll(new Label("Select Date-Time Range:"), startDateTimePicker, endDateTimePicker, trackButton, resultLabel);
-
-        Scene scene = new Scene(layout, 400, 300);
+        Scene scene = new Scene(layout, 300, 200);
         dialog.setScene(scene);
         dialog.show();
     }
+
+    private void showMoodChart(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null) {
+            showAlert(Alert.AlertType.ERROR, "Date Selection Error", "Please select both start and end dates.");
+            return;
+        }
+
+        Map<Mood, Integer> moodCounts = countMoods(startDate, endDate);
+
+        Stage chartStage = new Stage();
+        chartStage.setTitle("Mood Distribution");
+
+        CategoryAxis xAxis = new CategoryAxis();
+        NumberAxis yAxis = new NumberAxis();
+        BarChart<String, Number> barChart = new BarChart<>(xAxis, yAxis);
+        barChart.setTitle("Mood Distribution from " + startDate + " to " + endDate);
+
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+        series.setName("Mood Frequency");
+
+        for (Map.Entry<Mood, Integer> entry : moodCounts.entrySet()) {
+            series.getData().add(new XYChart.Data<>(entry.getKey().toString(), entry.getValue()));
+        }
+
+        barChart.getData().add(series);
+
+        Scene scene = new Scene(barChart, 800, 600);
+        chartStage.setScene(scene);
+        chartStage.show();
+    }
+
+    private Map<Mood, Integer> countMoods(LocalDate startDate, LocalDate endDate) {
+        Map<Mood, Integer> moodCounts = new HashMap<>();
+        for (DiaryEntryWithImage entry : diaryEntries) {
+            LocalDate entryDate = entry.getEntryTime().toLocalDate();
+            if ((entryDate.isEqual(startDate) || entryDate.isAfter(startDate)) &&
+                    (entryDate.isEqual(endDate) || entryDate.isBefore(endDate))) {
+                Mood mood = entry.getMood();
+                moodCounts.put(mood, moodCounts.getOrDefault(mood, 0) + 1);
+            }
+        }
+        return moodCounts;
+    }
+
 
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
@@ -91,5 +120,12 @@ public class MoodTracker {
         alert.showAndWait();
     }
 }
+
+
+
+
+
+
+
 
 

@@ -1,61 +1,68 @@
 package com.example.myapp.demo1;
 
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DiaryPersistence {
 
-    private static final String DATA_DIR = "data"; // Directory to store user data
+    private static final String DATA_DIR = "data";
 
-    /**
-     * Load diary entries from a file for the specified user.
-     *
-     * @param username The username of the user whose entries are to be loaded.
-     * @return A list of diary entries.
-     */
-    public static List<DiaryEntryWithImage> loadEntriesFromFile(String username) {
+    public static ObservableList<DiaryEntryWithImage> loadEntriesFromFile(String username) {
         File dataDir = new File(DATA_DIR);
         if (!dataDir.exists()) {
-            dataDir.mkdirs(); // Create the directory if it doesn't exist
+            dataDir.mkdirs();
         }
 
-        File file = new File(dataDir, username + "_diary_entries.dat");
+        File file = new File(dataDir, username + "_diary_entries.csv");
+        ObservableList<DiaryEntryWithImage> entries = FXCollections.observableArrayList();
 
         if (file.exists()) {
-            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-                List<DiaryEntryWithImage> entries = (List<DiaryEntryWithImage>) ois.readObject();
-                return entries != null ? entries : FXCollections.observableArrayList(); // Return loaded entries or empty list
-            } catch (IOException | ClassNotFoundException e) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String[] parts = line.split(",");
+                    if (parts.length >= 4) {
+                        String title = parts[0];
+                        String content = parts[1];
+                        MoodTracker.Mood mood = MoodTracker.Mood.valueOf(parts[2]);
+                        String imagePath = parts[3].equals("null") ? null : parts[3];
+                        entries.add(new DiaryEntryWithImage(title, content, mood, imagePath));
+                    }
+                }
+            } catch (IOException e) {
                 System.out.println("Error: Unable to load diary entries. Details: " + e.getMessage());
-                return FXCollections.observableArrayList(); // Return empty list on error
             }
-        } else {
-            return FXCollections.observableArrayList(); // Return empty list if file does not exist
         }
+
+        return entries;
     }
 
-    /**
-     * Save diary entries to a file for the specified user.
-     *
-     * @param username The username of the user whose entries are to be saved.
-     * @param entries  The list of diary entries to save.
-     */
     public static void saveEntriesToFile(String username, List<DiaryEntryWithImage> entries) {
         File dataDir = new File(DATA_DIR);
         if (!dataDir.exists()) {
-            dataDir.mkdirs(); // Create the directory if it doesn't exist
+            dataDir.mkdirs();
         }
 
-        File file = new File(dataDir, username + "_diary_entries.dat");
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
-            oos.writeObject(entries); // Write entries to file
+        File file = new File(dataDir, username + "_diary_entries.csv");
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+            for (DiaryEntryWithImage entry : entries) {
+                writer.write(String.format("%s,%s,%s,%s\n",
+                        entry.getTitle(),
+                        entry.getContent(),
+                        entry.getMood(),
+                        entry.getImagePath() != null ? entry.getImagePath() : "null"
+                ));
+            }
         } catch (IOException e) {
             System.out.println("Error: Unable to save diary entries. Details: " + e.getMessage());
         }
     }
 }
+
 
 
 
