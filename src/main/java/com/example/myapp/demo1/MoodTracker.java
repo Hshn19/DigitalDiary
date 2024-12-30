@@ -2,116 +2,126 @@ package com.example.myapp.demo1;
 
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
-import javafx.scene.chart.BarChart;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.NumberAxis;
-import javafx.scene.chart.XYChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
-
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class MoodTracker {
-
     private final ObservableList<DiaryEntryWithImage> diaryEntries;
-
-    public enum Mood {
-        HAPPY, EXCITED, CONTENT, NEUTRAL, TIRED, STRESSED, SAD, ANGRY;
-
-        public <V, K> Map<K,V> toUpperCase() {
-            return Map.of();
-        }
-
-        public String toLowerCase() {
-            return "";
-        }
-    }
+    private Canvas heatMapCanvas;
 
     public MoodTracker(ObservableList<DiaryEntryWithImage> diaryEntries) {
         this.diaryEntries = diaryEntries;
     }
 
     public void showMoodTrackerDialog() {
-        Stage dialog = new Stage();
-        dialog.setTitle("Mood Tracker");
+        Stage stage = new Stage();
+        stage.setTitle("Mood Tracker");
 
-        VBox layout = new VBox(10);
-        layout.setPadding(new javafx.geometry.Insets(10));
+        DatePicker startDatePicker = new DatePicker();
+        DatePicker endDatePicker = new DatePicker();
 
-        ComboBox<LocalDate> startDatePicker = new ComboBox<>();
-        ComboBox<LocalDate> endDatePicker = new ComboBox<>();
+        HBox dateRangeBox = new HBox(10);
+        dateRangeBox.getChildren().addAll(
+                new Label("Start Date:"), startDatePicker,
+                new Label("End Date:"), endDatePicker
+        );
 
-        startDatePicker.setPromptText("Start Date");
-        endDatePicker.setPromptText("End Date");
-
-        // Populate date pickers with available dates from diary entries
-        for (DiaryEntryWithImage entry : diaryEntries) {
-            LocalDate entryDate = entry.getEntryTime().toLocalDate();
-            if (!startDatePicker.getItems().contains(entryDate)) {
-                startDatePicker.getItems().add(entryDate);
-                endDatePicker.getItems().add(entryDate);
-            }
-        }
+        heatMapCanvas = new Canvas(400, 200);
 
         Button trackButton = new Button("Track Mood");
-        trackButton.setOnAction(event -> showMoodChart(startDatePicker.getValue(), endDatePicker.getValue()));
+        trackButton.setOnAction(e -> updateHeatMap(startDatePicker.getValue(), endDatePicker.getValue()));
 
-        layout.getChildren().addAll(new Label("Select Date Range:"), startDatePicker, endDatePicker, trackButton);
+        VBox layout = new VBox(10);
+        layout.getChildren().addAll(dateRangeBox, trackButton, heatMapCanvas);
 
-        Scene scene = new Scene(layout, 300, 200);
-        dialog.setScene(scene);
-        dialog.show();
+        Scene scene = new Scene(layout, 450, 300);
+        stage.setScene(scene);
+        stage.show();
     }
 
-    private void showMoodChart(LocalDate startDate, LocalDate endDate) {
+    private void updateHeatMap(LocalDate startDate, LocalDate endDate) {
         if (startDate == null || endDate == null) {
-            showAlert(Alert.AlertType.ERROR, "Date Selection Error", "Please select both start and end dates.");
+            showAlert(Alert.AlertType.ERROR, "Date Error", "Please select both start and end dates.");
             return;
         }
 
-        Map<Mood, Integer> moodCounts = countMoods(startDate, endDate);
+        List<DiaryEntryWithImage> filteredEntries = diaryEntries.stream()
+                .filter(entry -> {
+                    LocalDate entryDate = entry.getEntryTime().toLocalDate();
+                    return !entryDate.isBefore(startDate) && !entryDate.isAfter(endDate);
+                })
+                .collect(Collectors.toList());
 
-        Stage chartStage = new Stage();
-        chartStage.setTitle("Mood Distribution");
-
-        CategoryAxis xAxis = new CategoryAxis();
-        NumberAxis yAxis = new NumberAxis();
-        BarChart<String, Number> barChart = new BarChart<>(xAxis, yAxis);
-        barChart.setTitle("Mood Distribution from " + startDate + " to " + endDate);
-
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        series.setName("Mood Frequency");
-
-        for (Map.Entry<Mood, Integer> entry : moodCounts.entrySet()) {
-            series.getData().add(new XYChart.Data<>(entry.getKey().toString(), entry.getValue()));
-        }
-
-        barChart.getData().add(series);
-
-        Scene scene = new Scene(barChart, 800, 600);
-        chartStage.setScene(scene);
-        chartStage.show();
+        drawHeatMap(filteredEntries);
     }
 
-    private Map<Mood, Integer> countMoods(LocalDate startDate, LocalDate endDate) {
-        Map<Mood, Integer> moodCounts = new HashMap<>();
-        for (DiaryEntryWithImage entry : diaryEntries) {
-            LocalDate entryDate = entry.getEntryTime().toLocalDate();
-            if ((entryDate.isEqual(startDate) || entryDate.isAfter(startDate)) &&
-                    (entryDate.isEqual(endDate) || entryDate.isBefore(endDate))) {
-                Mood mood = entry.getMood();
-                moodCounts.put(mood, moodCounts.getOrDefault(mood, 0) + 1);
-            }
+    private void drawHeatMap(List<DiaryEntryWithImage> entries) {
+        GraphicsContext gc = heatMapCanvas.getGraphicsContext2D();
+        gc.clearRect(0, 0, heatMapCanvas.getWidth(), heatMapCanvas.getHeight());
+
+        int entryCount = entries.size();
+        double cellWidth = heatMapCanvas.getWidth() / entryCount;
+        double cellHeight = heatMapCanvas.getHeight();
+
+        for (int i = 0; i < entryCount; i++) {
+            DiaryEntryWithImage entry = entries.get(i);
+            int score = getMoodScore(entry.getMood());
+            Color color = getMoodColor(score);
+
+            gc.setFill(color);
+            gc.fillRect(i * cellWidth, 0, cellWidth, cellHeight);
+
+            // Add entry date as label
+            gc.setFill(Color.BLACK);
+            gc.fillText(entry.getEntryTime().toLocalDate().toString(), i * cellWidth, cellHeight - 5);
         }
-        return moodCounts;
     }
 
+    private Color getMoodColor(int score) {
+        switch (score) {
+            case 5: return Color.GREEN;
+            case 4: return Color.LIGHTGREEN;
+            case 3: return Color.YELLOW;
+            case 2: return Color.ORANGE;
+            case 1: return Color.RED;
+            default: return Color.GRAY;
+        }
+    }
+
+    private int getMoodScore(String mood) {
+        switch (mood.toLowerCase()) {
+            case "happy 😊":
+            case "excited":
+                return 5;
+            case "content":
+                return 4;
+            case "neutral 😐":
+                return 3;
+            case "tired":
+            case "stressed":
+                return 2;
+            case "sad 😢":
+            case "angry":
+                return 1;
+            default:
+                return 0;
+        }
+    }
 
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
@@ -120,6 +130,7 @@ public class MoodTracker {
         alert.showAndWait();
     }
 }
+
 
 
 

@@ -17,6 +17,11 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
+
+
 public class demo1 extends Application {
 
     private final ObservableList<DiaryEntryWithImage> diaryEntries = FXCollections.observableArrayList();
@@ -33,6 +38,7 @@ public class demo1 extends Application {
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Digital Diary");
+
 
         VBox welcomeLayout = new VBox(10);
         welcomeLayout.setPadding(new Insets(10));
@@ -56,6 +62,8 @@ public class demo1 extends Application {
         Scene welcomeScene = new Scene(welcomeLayout, 400, 300);
         primaryStage.setScene(welcomeScene);
         primaryStage.show();
+        primaryStage.setMaximized(true);
+
     }
 
     private void loadDiaryEntries(Stage primaryStage) {
@@ -118,7 +126,6 @@ public class demo1 extends Application {
         Button moodTrackerButton = new Button("Mood Tracker");
         moodTrackerButton.setOnAction(event -> openMoodTrackerDialog());
 
-
         HBox buttonBox = new HBox(10, addButton, editButton, deleteButton, recycleBinButton, moodTrackerButton);
 
         layout.getChildren().addAll(titleLabel, searchLayout, diaryListView, buttonBox);
@@ -126,6 +133,7 @@ public class demo1 extends Application {
         Scene scene = new Scene(layout, 800, 600);
         primaryStage.setScene(scene);
         primaryStage.setOnCloseRequest(event -> DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries)));
+
     }
 
     private void openAddEntryDialog() {
@@ -138,12 +146,12 @@ public class demo1 extends Application {
         TextField titleField = new TextField();
         titleField.setPromptText("Title");
 
-        TextArea contentArea = new TextArea();
-        contentArea.setPromptText("Content");
-        ComboBox<MoodTracker.Mood> moodComboBox = new ComboBox<>();
-        moodComboBox.getItems().addAll(MoodTracker.Mood.values());
-        moodComboBox.setPromptText("Select Mood");
+        TextArea contentArea = new TextArea(); // Add this line
+        contentArea.setPromptText("Content"); // Add this line
 
+        ComboBox<String> moodComboBox = new ComboBox<>();
+        moodComboBox.getItems().addAll("Happy 😊", "Excited", "Content", "Neutral 😐", "Tired", "Stressed", "Sad 😢", "Angry");
+        moodComboBox.setPromptText("Select Mood");
 
         Button selectImageButton = new Button("Select Image");
         Label selectedImageLabel = new Label("No image selected");
@@ -167,7 +175,7 @@ public class demo1 extends Application {
             try {
                 String title = titleField.getText();
                 String content = contentArea.getText();
-                MoodTracker.Mood selectedMood = moodComboBox.getValue();
+                String selectedMood = moodComboBox.getValue();
 
                 if (title.isEmpty() || content.isEmpty() || selectedMood == null) {
                     showAlert(Alert.AlertType.ERROR, "Validation Error", "All fields must be filled.");
@@ -209,22 +217,22 @@ public class demo1 extends Application {
 
         TextField titleField = new TextField(entry.getTitle());
         TextArea contentArea = new TextArea(entry.getContent());
-        ComboBox<MoodTracker.Mood> moodComboBox = new ComboBox<>();
-        moodComboBox.getItems().addAll(MoodTracker.Mood.values());
 
+        ComboBox<String> moodComboBox = new ComboBox<>();
+        moodComboBox.getItems().addAll("Happy 😊", "Excited", "Content", "Neutral 😐", "Tired", "Stressed", "Sad 😢", "Angry");
+        moodComboBox.setValue(entry.getMood());
 
         Button selectImageButton = new Button("Select Image");
         Label selectedImageLabel = new Label("Current Image: " + (entry.getImagePath() != null ? entry.getImagePath() : "No image selected"));
 
-        // Variable to hold the selected image path
-        String[] selectedImagePath = {entry.getImagePath()}; // Start with current image path
+        String[] selectedImagePath = {entry.getImagePath()};
 
         selectImageButton.setOnAction(event -> {
             FileChooser fileChooser = new FileChooser();
             fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.gif"));
             File file = fileChooser.showOpenDialog(dialog);
             if (file != null) {
-                selectedImagePath[0] = file.getAbsolutePath(); // Store the selected image path
+                selectedImagePath[0] = file.getAbsolutePath();
                 selectedImageLabel.setText("Selected Image: " + file.getName());
             }
         });
@@ -234,25 +242,22 @@ public class demo1 extends Application {
             try {
                 String title = titleField.getText();
                 String content = contentArea.getText();
-                MoodTracker.Mood selectedMood = moodComboBox.getValue();
+                String selectedMood = moodComboBox.getValue();
 
                 if (title.isEmpty() || content.isEmpty() || selectedMood == null) {
                     showAlert(Alert.AlertType.ERROR, "Validation Error", "All fields must be filled.");
                 } else {
-                    // Update the entry with new values
                     entry.setTitle(title);
                     entry.setContent(content);
                     entry.setMood(selectedMood);
-                    entry.setImagePath(selectedImagePath[0]); // Update image path
+                    entry.setImagePath(selectedImagePath[0]);
 
-                    // Save updated entries
                     DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries));
                     dialog.close();
                 }
             } catch (Exception e) {
                 showAlert(Alert.AlertType.ERROR, "Error", "An error occurred while editing the entry: " + e.getMessage());
             }
-
         });
 
         layout.getChildren().addAll(new Label("Title:"), titleField,
@@ -280,8 +285,6 @@ public class demo1 extends Application {
         MoodTracker moodTracker = new MoodTracker(diaryEntries);
         moodTracker.showMoodTrackerDialog();
     }
-
-
 
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);

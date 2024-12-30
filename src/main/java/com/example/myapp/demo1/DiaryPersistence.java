@@ -2,9 +2,7 @@ package com.example.myapp.demo1;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-
 import java.io.*;
-import java.util.ArrayList;
 import java.util.List;
 
 public class DiaryPersistence {
@@ -28,7 +26,7 @@ public class DiaryPersistence {
                     if (parts.length >= 4) {
                         String title = parts[0];
                         String content = parts[1];
-                        MoodTracker.Mood mood = MoodTracker.Mood.valueOf(parts[2]);
+                        String mood = parts[2];
                         String imagePath = parts[3].equals("null") ? null : parts[3];
                         entries.add(new DiaryEntryWithImage(title, content, mood, imagePath));
                     }
@@ -62,6 +60,8 @@ public class DiaryPersistence {
         }
     }
 }
+
+
 
 
 
