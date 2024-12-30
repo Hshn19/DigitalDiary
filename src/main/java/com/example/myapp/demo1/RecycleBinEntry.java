@@ -1,17 +1,19 @@
 package com.example.myapp.demo1;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
-public class RecycleBinEntry {
-    private DiaryEntry diaryEntry;
-    private LocalDateTime deletedAt;
+public class RecycleBinEntry implements Serializable {
+    private final DiaryEntryWithImage diaryEntry;
+    private final LocalDateTime deletedAt;
 
-    public RecycleBinEntry(DiaryEntry diaryEntry, LocalDateTime deletedAt) {
+    public RecycleBinEntry(DiaryEntryWithImage diaryEntry, LocalDateTime deletedAt) {
         this.diaryEntry = diaryEntry;
         this.deletedAt = deletedAt;
     }
 
-    public DiaryEntry getDiaryEntry() {
+    public DiaryEntryWithImage getDiaryEntry() {
         return diaryEntry;
     }
 
@@ -21,7 +23,8 @@ public class RecycleBinEntry {
 
     @Override
     public String toString() {
-        return diaryEntry.getDate() + ": " + diaryEntry.getTitle() + " (Deleted on: " + deletedAt.toLocalDate() + ")";
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return String.format("%s - Deleted on: %s", diaryEntry.toString(), deletedAt.format(formatter));
     }
 }
 
