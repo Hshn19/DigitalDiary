@@ -4,12 +4,15 @@ import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 import java.io.File;
@@ -39,7 +42,6 @@ public class demo1 extends Application {
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Digital Diary");
 
-
         VBox welcomeLayout = new VBox(10);
         welcomeLayout.setPadding(new Insets(10));
 
@@ -62,7 +64,7 @@ public class demo1 extends Application {
         Scene welcomeScene = new Scene(welcomeLayout, 400, 300);
         primaryStage.setScene(welcomeScene);
         primaryStage.show();
-        primaryStage.setMaximized(true);
+        primaryStage.setFullScreen(true);
 
     }
 
@@ -136,6 +138,14 @@ public class demo1 extends Application {
 
     }
 
+    private void setupFullScreenScene(Stage stage, Scene scene) {
+        stage.setScene(scene);
+        stage.setFullScreen(true);
+        stage.setFullScreenExitHint(""); // Optionally remove the exit hint
+        stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH); // Optionally disable Esc key exit
+    }
+
+
     private void openAddEntryDialog() {
         Stage dialog = new Stage();
         dialog.setTitle("Add New Entry");
@@ -199,8 +209,8 @@ public class demo1 extends Application {
                 saveButton);
 
         Scene scene = new Scene(layout, 400, 400);
-        dialog.setScene(scene);
-        dialog.show();
+        setupFullScreenScene(dialog, scene);
+        dialog.showAndWait();
     }
 
     private void openEditEntryDialog(DiaryEntryWithImage entry) {
@@ -267,9 +277,11 @@ public class demo1 extends Application {
                 selectedImageLabel,
                 saveButton);
 
-        Scene scene = new Scene(layout, 400, 400);
-        dialog.setScene(scene);
-        dialog.show();
+        Screen screen = Screen.getPrimary();
+        Rectangle2D bounds = screen.getVisualBounds();
+        double width = bounds.getWidth();
+        double height = bounds.getHeight();
+
     }
 
     private void deleteSelectedEntry(ListView<DiaryEntryWithImage> diaryListView) {

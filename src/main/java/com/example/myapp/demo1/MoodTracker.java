@@ -1,6 +1,7 @@
 package com.example.myapp.demo1;
 
 import javafx.collections.ObservableList;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.NumberAxis;
@@ -11,6 +12,8 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -49,9 +52,13 @@ public class MoodTracker {
         VBox layout = new VBox(10);
         layout.getChildren().addAll(dateRangeBox, trackButton, heatMapCanvas);
 
-        Scene scene = new Scene(layout, 450, 300);
+        Scene scene = new Scene(layout, 800, 600);
         stage.setScene(scene);
-        stage.show();
+        stage.show();Screen screen = Screen.getPrimary();
+        Rectangle2D bounds = screen.getVisualBounds();
+        double width = bounds.getWidth();
+        double height = bounds.getHeight();
+
     }
 
     private void updateHeatMap(LocalDate startDate, LocalDate endDate) {
@@ -75,8 +82,7 @@ public class MoodTracker {
         gc.clearRect(0, 0, heatMapCanvas.getWidth(), heatMapCanvas.getHeight());
 
         int entryCount = entries.size();
-        double cellWidth = heatMapCanvas.getWidth() / entryCount;
-        double cellHeight = heatMapCanvas.getHeight();
+        double squareSize = Math.min(heatMapCanvas.getWidth() / entryCount, heatMapCanvas.getHeight());
 
         for (int i = 0; i < entryCount; i++) {
             DiaryEntryWithImage entry = entries.get(i);
@@ -84,12 +90,12 @@ public class MoodTracker {
             Color color = getMoodColor(score);
 
             gc.setFill(color);
-            gc.fillRect(i * cellWidth, 0, cellWidth, cellHeight);
-
-            // Add entry date as label
-            gc.setFill(Color.BLACK);
-            gc.fillText(entry.getEntryTime().toLocalDate().toString(), i * cellWidth, cellHeight - 5);
+            gc.fillRect(i * squareSize, 0, squareSize, squareSize);
         }
+
+        gc.setFill(Color.BLACK);
+        gc.setFont(new Font(10));
+
     }
 
     private Color getMoodColor(int score) {

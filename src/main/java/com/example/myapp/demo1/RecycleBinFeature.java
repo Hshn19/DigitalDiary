@@ -1,6 +1,8 @@
 package com.example.myapp.demo1;
 
 import javafx.collections.ObservableList;
+import javafx.geometry.Insets;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 
@@ -12,6 +14,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 public class RecycleBinFeature {
@@ -36,7 +39,7 @@ public class RecycleBinFeature {
         dialog.setTitle("Recycle Bin");
 
         VBox layout = new VBox(10);
-        layout.setPadding(new javafx.geometry.Insets(10));
+        layout.setPadding(new Insets(10));
 
         ListView<RecycleBinEntry> recycleBinView = new ListView<>(recycleBin);
 
@@ -60,6 +63,7 @@ public class RecycleBinFeature {
         Scene scene = new Scene(layout, 400, 300);
         dialog.setScene(scene);
         dialog.show();
+
     }
 
     private void showAlert(Alert.AlertType type, String title, String message) {
