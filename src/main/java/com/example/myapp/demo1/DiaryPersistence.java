@@ -52,7 +52,7 @@ public class DiaryPersistence {
                         entry.getTitle(),
                         entry.getContent(),
                         entry.getMood(),
-                        entry.getImagePath() != null ? entry.getImagePath() : "null"
+                        entry.getImagePaths() != null ? entry.getImagePaths() : "null"
                 ));
             }
         } catch (IOException e) {
@@ -60,6 +60,7 @@ public class DiaryPersistence {
         }
     }
 }
+
 
 
 
