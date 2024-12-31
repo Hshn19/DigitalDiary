@@ -4,26 +4,16 @@ import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
-import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
-import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 import java.io.File;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-
-import javafx.scene.chart.LineChart;
-import javafx.scene.chart.NumberAxis;
-import javafx.scene.chart.XYChart;
-
 
 public class demo1 extends Application {
 
@@ -32,6 +22,7 @@ public class demo1 extends Application {
     private final UserLoginRegistration userSystem = new UserLoginRegistration();
     private final SearchManager searchManager = new SearchManager(diaryEntries);
     private final RecycleBinFeature recycleBinFeature = new RecycleBinFeature(recycleBin);
+    private final MotivationalQuotes motivationalQuotes = new MotivationalQuotes();
     private String currentUser;
 
     public static void main(String[] args) {
@@ -64,8 +55,6 @@ public class demo1 extends Application {
         Scene welcomeScene = new Scene(welcomeLayout, 400, 300);
         primaryStage.setScene(welcomeScene);
         primaryStage.show();
-        primaryStage.setFullScreen(true);
-
     }
 
     private void loadDiaryEntries(Stage primaryStage) {
@@ -100,7 +89,7 @@ public class demo1 extends Application {
                 } else {
                     setText(item.toString());
                     if (item.getImagePath() != null) {
-                        Image image = new Image(new java.io.File(item.getImagePath()).toURI().toString());
+                        Image image = new Image(new File(item.getImagePath()).toURI().toString());
                         imageView.setImage(image);
                         imageView.setFitWidth(50);
                         imageView.setFitHeight(50);
@@ -121,7 +110,6 @@ public class demo1 extends Application {
         Button deleteButton = new Button("Delete Entry");
         deleteButton.setOnAction(event -> deleteSelectedEntry(diaryListView));
 
-
         Button recycleBinButton = new Button("Recycle Bin");
         recycleBinButton.setOnAction(event -> recycleBinFeature.openRecycleBinDialog(diaryEntries));
 
@@ -135,16 +123,7 @@ public class demo1 extends Application {
         Scene scene = new Scene(layout, 800, 600);
         primaryStage.setScene(scene);
         primaryStage.setOnCloseRequest(event -> DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries)));
-
     }
-
-    private void setupFullScreenScene(Stage stage, Scene scene) {
-        stage.setScene(scene);
-        stage.setFullScreen(true);
-        stage.setFullScreenExitHint(""); // Optionally remove the exit hint
-        stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH); // Optionally disable Esc key exit
-    }
-
 
     private void openAddEntryDialog() {
         Stage dialog = new Stage();
@@ -156,12 +135,23 @@ public class demo1 extends Application {
         TextField titleField = new TextField();
         titleField.setPromptText("Title");
 
-        TextArea contentArea = new TextArea(); // Add this line
-        contentArea.setPromptText("Content"); // Add this line
+        TextArea contentArea = new TextArea();
+        contentArea.setPromptText("Content");
 
         ComboBox<String> moodComboBox = new ComboBox<>();
-        moodComboBox.getItems().addAll("Happy 😊", "Excited", "Content", "Neutral 😐", "Tired", "Stressed", "Sad 😢", "Angry");
+        moodComboBox.getItems().addAll("Happy 😊", "Sad 😢", "Neutral 😐", "Content", "Stressed", "Excited", "Tired", "Angry");
         moodComboBox.setPromptText("Select Mood");
+
+        Label quoteLabel = new Label("Select a mood to see a motivational quote!");
+        quoteLabel.setWrapText(true);
+        quoteLabel.setStyle("-fx-font-style: italic; -fx-text-fill: #555;");
+
+        moodComboBox.setOnAction(event -> {
+            String selectedMood = moodComboBox.getValue();
+            if (selectedMood != null) {
+                quoteLabel.setText(motivationalQuotes.getQuoteForMood(selectedMood));
+            }
+        });
 
         Button selectImageButton = new Button("Select Image");
         Label selectedImageLabel = new Label("No image selected");
@@ -176,41 +166,37 @@ public class demo1 extends Application {
             fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.gif"));
             File file = fileChooser.showOpenDialog(dialog);
             if (file != null) {
-                selectedImagePath[0] = file.getAbsolutePath(); // Store the selected image path
+                selectedImagePath[0] = file.getAbsolutePath();
                 selectedImageLabel.setText("Selected Image: " + file.getName());
             }
         });
 
         saveButton.setOnAction(event -> {
-            try {
-                String title = titleField.getText();
-                String content = contentArea.getText();
-                String selectedMood = moodComboBox.getValue();
+            String title = titleField.getText();
+            String content = contentArea.getText();
+            String mood = moodComboBox.getValue();
 
-                if (title.isEmpty() || content.isEmpty() || selectedMood == null) {
-                    showAlert(Alert.AlertType.ERROR, "Validation Error", "All fields must be filled.");
-                } else {
-                    DiaryEntryWithImage newEntry = new DiaryEntryWithImage(title, content, selectedMood, selectedImagePath[0]);
-                    diaryEntries.add(newEntry);
-                    DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries));
-                    dialog.close();
-                }
-
-            } catch (Exception e) {
-                showAlert(Alert.AlertType.ERROR, "Error", "An error occurred while adding the entry: " + e.getMessage());
+            if (title.isEmpty() || content.isEmpty() || mood == null) {
+                showAlert(Alert.AlertType.ERROR, "Validation Error", "All fields must be filled.");
+            } else {
+                DiaryEntryWithImage newEntry = new DiaryEntryWithImage(title, content, mood, selectedImagePath[0]);
+                diaryEntries.add(newEntry);
+                DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries));
+                dialog.close();
             }
         });
 
         layout.getChildren().addAll(new Label("Title:"), titleField,
                 new Label("Content:"), contentArea,
                 new Label("Mood:"), moodComboBox,
+                quoteLabel,
                 selectImageButton,
                 selectedImageLabel,
                 saveButton);
 
-        Scene scene = new Scene(layout, 400, 400);
-        setupFullScreenScene(dialog, scene);
-        dialog.showAndWait();
+        Scene scene = new Scene(layout, 400, 500);
+        dialog.setScene(scene);
+        dialog.show();
     }
 
     private void openEditEntryDialog(DiaryEntryWithImage entry) {
@@ -227,13 +213,23 @@ public class demo1 extends Application {
 
         TextField titleField = new TextField(entry.getTitle());
         TextArea contentArea = new TextArea(entry.getContent());
-
         ComboBox<String> moodComboBox = new ComboBox<>();
-        moodComboBox.getItems().addAll("Happy 😊", "Excited", "Content", "Neutral 😐", "Tired", "Stressed", "Sad 😢", "Angry");
+        moodComboBox.getItems().addAll("Happy 😊", "Sad 😢", "Neutral 😐", "Content", "Stressed", "Excited", "Tired", "Angry");
         moodComboBox.setValue(entry.getMood());
 
+        Label quoteLabel = new Label(motivationalQuotes.getQuoteForMood(entry.getMood()));
+        quoteLabel.setWrapText(true);
+        quoteLabel.setStyle("-fx-font-style: italic; -fx-text-fill: #555;");
+
+        moodComboBox.setOnAction(event -> {
+            String selectedMood = moodComboBox.getValue();
+            if (selectedMood != null) {
+                quoteLabel.setText(motivationalQuotes.getQuoteForMood(selectedMood));
+            }
+        });
+
         Button selectImageButton = new Button("Select Image");
-        Label selectedImageLabel = new Label("Current Image: " + (entry.getImagePath() != null ? entry.getImagePath() : "No image selected"));
+        Label selectedImageLabel = new Label("Current Image: " + (entry.getImagePath() != null ? new File(entry.getImagePath()).getName() : "No image selected"));
 
         String[] selectedImagePath = {entry.getImagePath()};
 
@@ -249,45 +245,39 @@ public class demo1 extends Application {
 
         Button saveButton = new Button("Save Changes");
         saveButton.setOnAction(event -> {
-            try {
-                String title = titleField.getText();
-                String content = contentArea.getText();
-                String selectedMood = moodComboBox.getValue();
+            String title = titleField.getText();
+            String content = contentArea.getText();
+            String mood = moodComboBox.getValue();
 
-                if (title.isEmpty() || content.isEmpty() || selectedMood == null) {
-                    showAlert(Alert.AlertType.ERROR, "Validation Error", "All fields must be filled.");
-                } else {
-                    entry.setTitle(title);
-                    entry.setContent(content);
-                    entry.setMood(selectedMood);
-                    entry.setImagePath(selectedImagePath[0]);
-
-                    DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries));
-                    dialog.close();
-                }
-            } catch (Exception e) {
-                showAlert(Alert.AlertType.ERROR, "Error", "An error occurred while editing the entry: " + e.getMessage());
+            if (title.isEmpty() || content.isEmpty() || mood == null) {
+                showAlert(Alert.AlertType.ERROR, "Validation Error", "All fields must be filled.");
+            } else {
+                entry.setTitle(title);
+                entry.setContent(content);
+                entry.setMood(mood);
+                entry.setImagePath(selectedImagePath[0]);
+                DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries));
+                dialog.close();
             }
         });
 
         layout.getChildren().addAll(new Label("Title:"), titleField,
                 new Label("Content:"), contentArea,
                 new Label("Mood:"), moodComboBox,
+                quoteLabel,
                 selectImageButton,
                 selectedImageLabel,
                 saveButton);
 
-        Screen screen = Screen.getPrimary();
-        Rectangle2D bounds = screen.getVisualBounds();
-        double width = bounds.getWidth();
-        double height = bounds.getHeight();
-
+        Scene scene = new Scene(layout, 400, 500);
+        dialog.setScene(scene);
+        dialog.show();
     }
 
     private void deleteSelectedEntry(ListView<DiaryEntryWithImage> diaryListView) {
         DiaryEntryWithImage selectedEntry = diaryListView.getSelectionModel().getSelectedItem();
         if (selectedEntry != null) {
-            recycleBinFeature.moveToRecycleBin(diaryEntries, selectedEntry); // Move to recycle bin instead of deleting permanently
+            recycleBinFeature.moveToRecycleBin(diaryEntries, selectedEntry);
         } else {
             showAlert(Alert.AlertType.WARNING, "Delete Error", "Please select an entry to delete.");
         }
@@ -305,6 +295,7 @@ public class demo1 extends Application {
         alert.showAndWait();
     }
 }
+
 
 
 

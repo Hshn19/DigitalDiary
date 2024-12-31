@@ -3,8 +3,6 @@ package com.example.myapp.demo1;
 import javafx.collections.ObservableList;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
-import javafx.scene.chart.CategoryAxis;
-import javafx.scene.chart.NumberAxis;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
@@ -18,9 +16,7 @@ import javafx.stage.Stage;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class MoodTracker {
@@ -100,12 +96,12 @@ public class MoodTracker {
 
     private Color getMoodColor(int score) {
         switch (score) {
-            case 5: return Color.GREEN;
-            case 4: return Color.LIGHTGREEN;
-            case 3: return Color.YELLOW;
-            case 2: return Color.ORANGE;
-            case 1: return Color.RED;
-            default: return Color.GRAY;
+            case 5: return Color.MIDNIGHTBLUE;
+            case 4: return Color.STEELBLUE;
+            case 3: return Color.AQUAMARINE;
+            case 2: return Color.SKYBLUE;
+            case 1: return Color.IVORY;
+            default: return Color.LINEN;
         }
     }
 
