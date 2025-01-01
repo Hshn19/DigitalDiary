@@ -3,21 +3,45 @@ package com.example.myapp.demo1;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class DiaryEntryWithImage implements Serializable {
     private static final long serialVersionUID = 1L;
-    private final LocalDateTime entryTime;
-    private String title;
-    private String content;
-    private String mood;
-    private String imagePath;
 
-    public DiaryEntryWithImage(String title, String content, String mood, String imagePath) {
+    private final LocalDateTime entryTime; // Automatically set when the entry is created
+    private String title;                 // Title of the diary entry
+    private String content;               // Content of the diary entry
+    private String mood;                  // Mood associated with the entry
+    private List<String> imagePaths;      // List of relative paths to images
+
+    /**
+     * Constructor to initialize a diary entry.
+     *
+     * @param title      The title of the entry.
+     * @param content    The content of the entry.
+     * @param mood       The mood associated with the entry.
+     * @param imagePaths List of image paths (as a List or array).
+     */
+    public DiaryEntryWithImage(String title, String content, String mood, List<String> imagePaths) {
         this.entryTime = LocalDateTime.now();
         this.title = title;
         this.content = content;
         this.mood = mood;
-        this.imagePath = imagePath;
+        this.imagePaths = (imagePaths != null) ? new ArrayList<>(imagePaths) : new ArrayList<>();
+    }
+
+    /**
+     * Overloaded constructor to accept an array of image paths.
+     *
+     * @param title      The title of the entry.
+     * @param content    The content of the entry.
+     * @param mood       The mood associated with the entry.
+     * @param imagePaths Array of image paths.
+     */
+    public DiaryEntryWithImage(String title, String content, String mood, String[] imagePaths) {
+        this(title, content, mood, imagePaths != null ? Arrays.asList(imagePaths) : null);
     }
 
     public LocalDateTime getEntryTime() {
@@ -44,28 +68,42 @@ public class DiaryEntryWithImage implements Serializable {
         this.content = content;
     }
 
-    public void setMood(String mood) {
-        this.mood = mood;
-    }
-
     public String getMood() {
         return mood;
     }
 
-
-    public String getImagePath() {
-        return imagePath;
+    public void setMood(String mood) {
+        this.mood = mood;
     }
 
-    public void setImagePath(String imagePath) {
-        this.imagePath = imagePath;
+    public List<String> getImagePaths() {
+        return imagePaths;
+    }
+
+    public void setImagePaths(List<String> imagePaths) {
+        this.imagePaths = (imagePaths != null) ? new ArrayList<>(imagePaths) : new ArrayList<>();
+    }
+
+    /**
+     * Sets image paths from an array.
+     *
+     * @param imagePaths Array of image paths.
+     */
+    public void setImagePaths(String[] imagePaths) {
+        setImagePaths(imagePaths != null ? Arrays.asList(imagePaths) : null);
     }
 
     @Override
     public String toString() {
-        return String.format("%s (%s) - %s", title, mood, getFormattedEntryTime());
+        String imageInfo = (imagePaths.isEmpty()) ? "No images" : imagePaths.size() + " image(s)";
+        return String.format("%s (%s) - %s [%s]", title, mood, getFormattedEntryTime(), imageInfo);
     }
 }
+
+
+
+
+
 
 
 

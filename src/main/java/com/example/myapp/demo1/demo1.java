@@ -8,14 +8,21 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class demo1 extends Application {
+
+    private static final String IMAGE_STORAGE_DIR = "data/images/";
 
     private final ObservableList<DiaryEntryWithImage> diaryEntries = FXCollections.observableArrayList();
     private final ObservableList<RecycleBinEntry> recycleBin = FXCollections.observableArrayList();
@@ -31,6 +38,8 @@ public class demo1 extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        ensureImageStorageDirectoryExists();
+
         primaryStage.setTitle("Digital Diary");
 
         VBox welcomeLayout = new VBox(10);
@@ -88,15 +97,29 @@ public class demo1 extends Application {
                     setGraphic(null);
                 } else {
                     setText(item.toString());
-                    if (item.getImagePath() != null) {
-                        Image image = new Image(new File(item.getImagePath()).toURI().toString());
-                        imageView.setImage(image);
-                        imageView.setFitWidth(50);
-                        imageView.setFitHeight(50);
-                        setGraphic(imageView);
+                    if (!item.getImagePaths().isEmpty()) {
+                        File imageFile = new File(IMAGE_STORAGE_DIR, item.getImagePaths().get(0));
+                        if (imageFile.exists()) {
+                            Image image = new Image(imageFile.toURI().toString());
+                            imageView.setImage(image);
+                            imageView.setFitWidth(50);
+                            imageView.setFitHeight(50);
+                            setGraphic(imageView);
+                        } else {
+                            setGraphic(null);
+                        }
                     } else {
                         setGraphic(null);
                     }
+                }
+            }
+        });
+
+        diaryListView.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                DiaryEntryWithImage selectedEntry = diaryListView.getSelectionModel().getSelectedItem();
+                if (selectedEntry != null) {
+                    showFullEntryDialog(selectedEntry);
                 }
             }
         });
@@ -123,6 +146,46 @@ public class demo1 extends Application {
         Scene scene = new Scene(layout, 800, 600);
         primaryStage.setScene(scene);
         primaryStage.setOnCloseRequest(event -> DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries)));
+    }
+
+    private void showFullEntryDialog(DiaryEntryWithImage entry) {
+        Stage dialog = new Stage();
+        dialog.setTitle("Diary Entry Details");
+
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(10));
+
+        Label titleLabel = new Label("Title: " + entry.getTitle());
+        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+        Label moodLabel = new Label("Mood: " + entry.getMood());
+        moodLabel.setStyle("-fx-font-size: 14px; -fx-font-style: italic;");
+
+        Label dateLabel = new Label("Date: " + entry.getFormattedEntryTime());
+
+        TextArea contentArea = new TextArea(entry.getContent());
+        contentArea.setWrapText(true);
+        contentArea.setEditable(false);
+
+        VBox imageBox = new VBox(10);
+        for (String imagePath : entry.getImagePaths()) {
+            File imageFile = new File(IMAGE_STORAGE_DIR, imagePath);
+            if (imageFile.exists()) {
+                ImageView imageView = new ImageView(new Image(imageFile.toURI().toString()));
+                imageView.setFitWidth(200);
+                imageView.setPreserveRatio(true);
+                imageBox.getChildren().add(imageView);
+            }
+        }
+
+        Button closeButton = new Button("Close");
+        closeButton.setOnAction(event -> dialog.close());
+
+        layout.getChildren().addAll(titleLabel, moodLabel, dateLabel, new Label("Content:"), contentArea, new Label("Images:"), imageBox, closeButton);
+
+        Scene scene = new Scene(layout, 400, 600);
+        dialog.setScene(scene);
+        dialog.show();
     }
 
     private void openAddEntryDialog() {
@@ -153,24 +216,34 @@ public class demo1 extends Application {
             }
         });
 
-        Button selectImageButton = new Button("Select Image");
-        Label selectedImageLabel = new Label("No image selected");
+        Button selectImagesButton = new Button("Select Images");
+        Label selectedImagesLabel = new Label("No images selected");
 
-        Button saveButton = new Button("Save");
+        ObservableList<String> selectedImagePaths = FXCollections.observableArrayList();
 
-        // Variable to hold the selected image path
-        String[] selectedImagePath = {null};
-
-        selectImageButton.setOnAction(event -> {
+        selectImagesButton.setOnAction(event -> {
             FileChooser fileChooser = new FileChooser();
             fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.gif"));
-            File file = fileChooser.showOpenDialog(dialog);
-            if (file != null) {
-                selectedImagePath[0] = file.getAbsolutePath();
-                selectedImageLabel.setText("Selected Image: " + file.getName());
+            List<File> selectedFiles = fileChooser.showOpenMultipleDialog(dialog);
+            if (selectedFiles != null) {
+                selectedImagePaths.clear(); // Clear any previous selections
+                for (File file : selectedFiles) {
+                    try {
+                        File destFile = new File(IMAGE_STORAGE_DIR, file.getName());
+                        Files.copy(file.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                        selectedImagePaths.add(destFile.getName()); // Add relative path
+                    } catch (Exception e) {
+                        showAlert(Alert.AlertType.ERROR, "File Error", "Could not save image: " + file.getName());
+                    }
+                }
+                selectedImagesLabel.setText(selectedImagePaths.size() + " image(s) selected.");
+            } else {
+                selectedImagesLabel.setText("No images selected."); // Handle no selection
             }
         });
 
+
+        Button saveButton = new Button("Save");
         saveButton.setOnAction(event -> {
             String title = titleField.getText();
             String content = contentArea.getText();
@@ -179,19 +252,21 @@ public class demo1 extends Application {
             if (title.isEmpty() || content.isEmpty() || mood == null) {
                 showAlert(Alert.AlertType.ERROR, "Validation Error", "All fields must be filled.");
             } else {
-                DiaryEntryWithImage newEntry = new DiaryEntryWithImage(title, content, mood, selectedImagePath[0]);
+                // Create a new entry with an empty or valid image path list
+                DiaryEntryWithImage newEntry = new DiaryEntryWithImage(title, content, mood, new ArrayList<>(selectedImagePaths));
                 diaryEntries.add(newEntry);
                 DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries));
                 dialog.close();
             }
         });
 
+
         layout.getChildren().addAll(new Label("Title:"), titleField,
                 new Label("Content:"), contentArea,
                 new Label("Mood:"), moodComboBox,
                 quoteLabel,
-                selectImageButton,
-                selectedImageLabel,
+                selectImagesButton,
+                selectedImagesLabel,
                 saveButton);
 
         Scene scene = new Scene(layout, 400, 500);
@@ -228,18 +303,27 @@ public class demo1 extends Application {
             }
         });
 
-        Button selectImageButton = new Button("Select Image");
-        Label selectedImageLabel = new Label("Current Image: " + (entry.getImagePath() != null ? new File(entry.getImagePath()).getName() : "No image selected"));
+        ObservableList<String> selectedImagePaths = FXCollections.observableArrayList(entry.getImagePaths());
 
-        String[] selectedImagePath = {entry.getImagePath()};
+        Button selectImagesButton = new Button("Update Images");
+        Label selectedImagesLabel = new Label(selectedImagePaths.size() + " image(s) selected.");
 
-        selectImageButton.setOnAction(event -> {
+        selectImagesButton.setOnAction(event -> {
             FileChooser fileChooser = new FileChooser();
             fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.gif"));
-            File file = fileChooser.showOpenDialog(dialog);
-            if (file != null) {
-                selectedImagePath[0] = file.getAbsolutePath();
-                selectedImageLabel.setText("Selected Image: " + file.getName());
+            List<File> selectedFiles = fileChooser.showOpenMultipleDialog(dialog);
+            if (selectedFiles != null) {
+                selectedImagePaths.clear();
+                for (File file : selectedFiles) {
+                    try {
+                        File destFile = new File(IMAGE_STORAGE_DIR, file.getName());
+                        Files.copy(file.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                        selectedImagePaths.add(destFile.getName()); // Save relative path
+                    } catch (Exception e) {
+                        showAlert(Alert.AlertType.ERROR, "File Error", "Could not save image: " + file.getName());
+                    }
+                }
+                selectedImagesLabel.setText(selectedImagePaths.size() + " image(s) selected.");
             }
         });
 
@@ -252,26 +336,37 @@ public class demo1 extends Application {
             if (title.isEmpty() || content.isEmpty() || mood == null) {
                 showAlert(Alert.AlertType.ERROR, "Validation Error", "All fields must be filled.");
             } else {
+                // Update the entry with the updated image list
                 entry.setTitle(title);
                 entry.setContent(content);
                 entry.setMood(mood);
-                entry.setImagePath(selectedImagePath[0]);
+                entry.setImagePaths(new ArrayList<>(selectedImagePaths));
                 DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries));
                 dialog.close();
             }
         });
 
+
         layout.getChildren().addAll(new Label("Title:"), titleField,
                 new Label("Content:"), contentArea,
                 new Label("Mood:"), moodComboBox,
                 quoteLabel,
-                selectImageButton,
-                selectedImageLabel,
+                selectImagesButton,
+                selectedImagesLabel,
                 saveButton);
 
         Scene scene = new Scene(layout, 400, 500);
         dialog.setScene(scene);
         dialog.show();
+    }
+
+
+
+    private void ensureImageStorageDirectoryExists() {
+        File storageDir = new File(IMAGE_STORAGE_DIR);
+        if (!storageDir.exists()) {
+            storageDir.mkdirs();
+        }
     }
 
     private void deleteSelectedEntry(ListView<DiaryEntryWithImage> diaryListView) {
