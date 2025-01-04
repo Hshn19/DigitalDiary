@@ -48,8 +48,9 @@ public class MoodTracker {
 
         layout.getChildren().addAll(titleLabel, dateRangeBox, trackButton, moodLineChart);
 
-        Scene scene = new Scene(layout, 800, 600);
+        Scene scene = new Scene(layout, 1200, 800); // Full-screen chart
         stage.setScene(scene);
+        stage.setMaximized(true); // Automatically maximize the window
         stage.show();
     }
 
@@ -57,11 +58,13 @@ public class MoodTracker {
         CategoryAxis xAxis = new CategoryAxis(); // X-axis for dates
         xAxis.setLabel("Date");
 
-        NumberAxis yAxis = new NumberAxis(); // Y-axis for mood counts
+        NumberAxis yAxis = new NumberAxis(0, 10, 1); // Y-axis for mood counts, whole number increments
         yAxis.setLabel("Mood Count");
 
         LineChart<String, Number> lineChart = new LineChart<>(xAxis, yAxis);
-        lineChart.setTitle("Mood Occurrences Over Time");
+        lineChart.setTitle("Mood Trends Over Time");
+        lineChart.setCreateSymbols(true); // Enable points on the line
+        lineChart.setLegendVisible(true); // Show legend for better clarity
         return lineChart;
     }
 
@@ -71,7 +74,7 @@ public class MoodTracker {
             return;
         }
 
-        // Filter diary entries based on the selected date range
+        // Filter diary entries within the selected date range
         List<DiaryEntryWithImage> filteredEntries = diaryEntries.stream()
                 .filter(entry -> {
                     LocalDate entryDate = entry.getEntryTime().toLocalDate();
@@ -85,28 +88,69 @@ public class MoodTracker {
             return;
         }
 
-        // Generate data series for each mood
-        Map<String, List<DiaryEntryWithImage>> moodGroups = filteredEntries.stream()
-                .collect(Collectors.groupingBy(DiaryEntryWithImage::getMood));
-
         lineChart.getData().clear(); // Clear the chart before adding new data
 
-        // Create a series for each mood and populate it
-        moodGroups.forEach((mood, entries) -> {
-            XYChart.Series<String, Number> moodSeries = new XYChart.Series<>();
-            moodSeries.setName(mood);
+        // Ensure all moods are displayed, even if they have no entries
+        List<String> allMoods = List.of("Happy 😊", "Sad 😢", "Neutral 😐", "Content", "Stressed", "Excited", "Tired", "Angry");
 
-            Map<String, Long> moodCountByDate = entries.stream()
-                    .collect(Collectors.groupingBy(
-                            entry -> entry.getEntryTime().toLocalDate().toString(),
-                            Collectors.counting()
-                    ));
+        Map<String, Map<String, Long>> moodData = allMoods.stream()
+                .collect(Collectors.toMap(
+                        mood -> mood,
+                        mood -> filteredEntries.stream()
+                                .filter(entry -> mood.equals(entry.getMood()))
+                                .collect(Collectors.groupingBy(
+                                        entry -> entry.getEntryTime().toLocalDate().toString(),
+                                        Collectors.counting()
+                                ))
+                ));
 
-            moodCountByDate.forEach((date, count) -> {
-                moodSeries.getData().add(new XYChart.Data<>(date, count));
+        // Fill in missing dates with zero counts for all moods
+        List<String> dateRange = Stream.iterate(startDate, date -> date.plusDays(1))
+                .limit(startDate.until(endDate).getDays() + 1)
+                .map(LocalDate::toString)
+                .collect(Collectors.toList());
+
+        moodData.forEach((mood, dataByDate) -> {
+            dateRange.forEach(date -> dataByDate.putIfAbsent(date, 0L));
+        });
+
+        // Add series for each mood to the chart
+        moodData.forEach((mood, dataByDate) -> {
+            XYChart.Series<String, Number> series = new XYChart.Series<>();
+            series.setName(mood);
+
+            dataByDate.forEach((date, count) -> {
+                XYChart.Data<String, Number> dataPoint = new XYChart.Data<>(date, count);
+                series.getData().add(dataPoint);
+
+                // Add a tooltip for each data point
+                Tooltip.install(dataPoint.getNode(), new Tooltip(mood + ": " + count + " entries on " + date));
             });
 
-            lineChart.getData().add(moodSeries); // Add the series to the chart
+            lineChart.getData().add(series); // Add series to chart
+        });
+
+        applyMoodColors(lineChart); // Apply custom colors for each mood
+    }
+
+    private void applyMoodColors(LineChart<String, Number> lineChart) {
+        // Define mood colors
+        Map<String, String> moodColors = Map.of(
+                "Happy 😊", "#FFD700", // Gold
+                "Sad 😢", "#1E90FF", // DodgerBlue
+                "Neutral 😐", "#A9A9A9", // DarkGray
+                "Content", "#32CD32", // LimeGreen
+                "Stressed", "#FF6347", // Tomato
+                "Excited", "#FF4500", // OrangeRed
+                "Tired", "#8A2BE2", // BlueViolet
+                "Angry", "#DC143C" // Crimson
+        );
+
+        // Apply colors to the mood lines
+        lineChart.getData().forEach(series -> {
+            String mood = series.getName();
+            String color = moodColors.getOrDefault(mood, "#000000"); // Default to black if mood not found
+            series.getNode().setStyle("-fx-stroke: " + color + "; -fx-stroke-width: 2px;");
         });
     }
 
@@ -117,6 +161,8 @@ public class MoodTracker {
         alert.showAndWait();
     }
 }
+
+
 
 
 

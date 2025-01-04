@@ -31,7 +31,7 @@ public class DiaryPersistence {
                         String title = parts[0];
                         String content = parts[1];
                         String mood = parts[2];
-                        LocalDateTime entryTime = LocalDateTime.parse(parts[4], DATE_FORMATTER);
+                        LocalDateTime entryTime = LocalDateTime.parse(parts[4], DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
                         String[] imagePaths = parts[3].equals("null") ? new String[0] : parts[3].split(";");
 
                         entries.add(new DiaryEntryWithImage(title, content, mood, List.of(imagePaths), entryTime));
@@ -61,7 +61,7 @@ public class DiaryPersistence {
                         sanitize(entry.getContent()),
                         sanitize(entry.getMood()),
                         sanitize(imagePaths),
-                        entry.getEntryTime().format(DATE_FORMATTER)
+                        entry.getEntryTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
                 ));
             }
         } catch (IOException e) {

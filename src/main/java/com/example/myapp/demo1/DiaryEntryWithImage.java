@@ -15,7 +15,7 @@ public class DiaryEntryWithImage implements Serializable {
     private List<String> imagePaths;
 
     public DiaryEntryWithImage(String title, String content, String mood, List<String> imagePaths, LocalDateTime entryTime) {
-        this.entryTime = LocalDateTime.now(); // Set the current time as the entry timestamp
+        this.entryTime = entryTime != null ? entryTime : LocalDateTime.now(); // Use provided entryTime or fallback to current time
         this.title = title;
         this.content = content;
         this.mood = mood;
@@ -28,6 +28,10 @@ public class DiaryEntryWithImage implements Serializable {
 
     public String getFormattedEntryTime() {
         return entryTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+    }
+
+    public void setEntryTime(LocalDateTime entryTime) {
+        this.entryTime = entryTime;
     }
 
     public String getTitle() {
@@ -67,6 +71,7 @@ public class DiaryEntryWithImage implements Serializable {
         return title + " (Date: " + getFormattedEntryTime() + ")";
     }
 }
+
 
 
 
