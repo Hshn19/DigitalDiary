@@ -4,11 +4,14 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 import java.io.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 public class DiaryPersistence {
     private static final String DATA_DIR = "data";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     /**
      * Load diary entries from a file for the specified user.
@@ -30,12 +33,16 @@ public class DiaryPersistence {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     String[] parts = line.split(",", -1); // Split by commas, allow empty values
-                    if (parts.length >= 4) {
-                        String title = parts[0];
-                        String content = parts[1];
-                        String mood = parts[2];
-                        String[] imagePaths = parts[3].equals("null") ? new String[0] : parts[3].split(";");
-                        entries.add(new DiaryEntryWithImage(title, content, mood, List.of(imagePaths)));
+                    if (parts.length >= 5) { // Ensure all necessary fields are present
+                        LocalDateTime entryTime = LocalDateTime.parse(parts[0], DATE_TIME_FORMATTER);
+                        String title = parts[1];
+                        String content = parts[2];
+                        String mood = parts[3];
+                        String[] imagePaths = parts[4].isEmpty() ? new String[0] : parts[4].split(";");
+
+                        DiaryEntryWithImage entry = new DiaryEntryWithImage(title, content, mood, List.of(imagePaths));
+                        entry.setEntryTime(entryTime); // Set the loaded date
+                        entries.add(entry);
                     }
                 }
             } catch (IOException e) {
@@ -63,7 +70,8 @@ public class DiaryPersistence {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             for (DiaryEntryWithImage entry : entries) {
                 String imagePaths = String.join(";", entry.getImagePaths()); // Join image paths with semicolons
-                writer.write(String.format("%s,%s,%s,%s\n",
+                writer.write(String.format("%s,%s,%s,%s,%s\n",
+                        entry.getFormattedEntryTime(), // Save the entry date
                         sanitize(entry.getTitle()),
                         sanitize(entry.getContent()),
                         sanitize(entry.getMood()),
@@ -88,6 +96,7 @@ public class DiaryPersistence {
         return input.replace(",", "\\,").replace("\n", "\\n");
     }
 }
+
 
 
 

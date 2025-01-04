@@ -3,75 +3,69 @@ package com.example.myapp.demo1;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
-import javafx.scene.chart.*;
-import javafx.scene.control.*;
+import javafx.scene.chart.BubbleChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.DatePicker;
+import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class MoodTracker {
+
     private final ObservableList<DiaryEntryWithImage> diaryEntries;
+    private final Map<String, String> moodColors; // Map for mood-color association
 
     public MoodTracker(ObservableList<DiaryEntryWithImage> diaryEntries) {
         this.diaryEntries = diaryEntries;
+        this.moodColors = initializeMoodColors(); // Initialize mood-color mapping
     }
 
     public void showMoodTrackerDialog() {
         Stage stage = new Stage();
-        stage.setTitle("Mood Tracker - Mood Trends");
+        stage.setTitle("Mood Tracker - Bubble Chart");
 
-        VBox layout = new VBox(10);
-        layout.setPadding(new Insets(10));
+        VBox layout = new VBox(15);
+        layout.setPadding(new Insets(20));
 
-        Label titleLabel = new Label("Mood Tracker");
-        titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
+        Label titleLabel = new Label("Mood Tracker - Select Date Range");
+        titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
         DatePicker startDatePicker = new DatePicker();
         DatePicker endDatePicker = new DatePicker();
 
-        HBox dateRangeBox = new HBox(10);
-        dateRangeBox.getChildren().addAll(
+        HBox datePickers = new HBox(10);
+        datePickers.getChildren().addAll(
                 new Label("Start Date:"), startDatePicker,
                 new Label("End Date:"), endDatePicker
         );
 
-        LineChart<String, Number> moodLineChart = createMoodLineChart();
+        Button trackButton = new Button("Generate Mood Chart");
+        trackButton.setOnAction(e -> generateMoodBubbleChart(startDatePicker.getValue(), endDatePicker.getValue(), stage));
 
-        Button trackButton = new Button("Track Mood");
-        trackButton.setOnAction(e -> updateMoodLineChart(moodLineChart, startDatePicker.getValue(), endDatePicker.getValue()));
+        layout.getChildren().addAll(titleLabel, datePickers, trackButton);
 
-        layout.getChildren().addAll(titleLabel, dateRangeBox, trackButton, moodLineChart);
-
-        Scene scene = new Scene(layout, 800, 600);
+        Scene scene = new Scene(layout, 600, 400);
         stage.setScene(scene);
         stage.show();
     }
 
-    private LineChart<String, Number> createMoodLineChart() {
-        CategoryAxis xAxis = new CategoryAxis(); // X-axis for dates
-        xAxis.setLabel("Date");
-
-        NumberAxis yAxis = new NumberAxis(); // Y-axis for mood counts
-        yAxis.setLabel("Mood Count");
-
-        LineChart<String, Number> lineChart = new LineChart<>(xAxis, yAxis);
-        lineChart.setTitle("Mood Occurrences Over Time");
-        return lineChart;
-    }
-
-    private void updateMoodLineChart(LineChart<String, Number> lineChart, LocalDate startDate, LocalDate endDate) {
+    private void generateMoodBubbleChart(LocalDate startDate, LocalDate endDate, Stage stage) {
         if (startDate == null || endDate == null) {
-            showAlert(Alert.AlertType.ERROR, "Date Error", "Please select both start and end dates.");
+            showAlert(Alert.AlertType.ERROR, "Date Selection Error", "Both start and end dates must be selected.");
             return;
         }
 
-        // Filter diary entries based on the selected date range
+        // Filter diary entries within the date range
         List<DiaryEntryWithImage> filteredEntries = diaryEntries.stream()
                 .filter(entry -> {
                     LocalDate entryDate = entry.getEntryTime().toLocalDate();
@@ -80,34 +74,67 @@ public class MoodTracker {
                 .collect(Collectors.toList());
 
         if (filteredEntries.isEmpty()) {
-            showAlert(Alert.AlertType.INFORMATION, "No Data", "No diary entries found for the selected date range.");
-            lineChart.getData().clear(); // Clear the chart if no data
+            showAlert(Alert.AlertType.INFORMATION, "No Entries", "No diary entries found for the selected date range.");
             return;
         }
 
-        // Generate data series for each mood
-        Map<String, List<DiaryEntryWithImage>> moodGroups = filteredEntries.stream()
-                .collect(Collectors.groupingBy(DiaryEntryWithImage::getMood));
+        // Count occurrences of each mood
+        Map<String, Integer> moodCounts = new HashMap<>();
+        for (DiaryEntryWithImage entry : filteredEntries) {
+            moodCounts.put(entry.getMood(), moodCounts.getOrDefault(entry.getMood(), 0) + 1);
+        }
 
-        lineChart.getData().clear(); // Clear the chart before adding new data
+        // Create Bubble Chart
+        NumberAxis xAxis = new NumberAxis(0, moodCounts.size() + 1, 1); // Space bubbles dynamically
+        xAxis.setLabel("Mood Categories");
 
-        // Create a series for each mood and populate it
-        moodGroups.forEach((mood, entries) -> {
-            XYChart.Series<String, Number> moodSeries = new XYChart.Series<>();
-            moodSeries.setName(mood);
+        NumberAxis yAxis = new NumberAxis(0, moodCounts.values().stream().max(Integer::compare).orElse(10) + 2, 1);
+        yAxis.setLabel("Mood Frequency");
 
-            Map<String, Long> moodCountByDate = entries.stream()
-                    .collect(Collectors.groupingBy(
-                            entry -> entry.getEntryTime().toLocalDate().toString(),
-                            Collectors.counting()
-                    ));
+        BubbleChart<Number, Number> bubbleChart = new BubbleChart<>(xAxis, yAxis);
+        bubbleChart.setTitle("Mood Tracker Bubble Chart");
 
-            moodCountByDate.forEach((date, count) -> {
-                moodSeries.getData().add(new XYChart.Data<>(date, count));
-            });
+        XYChart.Series<Number, Number> series = new XYChart.Series<>();
+        series.setName("Mood Frequency");
 
-            lineChart.getData().add(moodSeries); // Add the series to the chart
-        });
+        int xIndex = 1; // Used to space bubbles along the x-axis
+        for (Map.Entry<String, Integer> moodEntry : moodCounts.entrySet()) {
+            String mood = moodEntry.getKey();
+            int count = moodEntry.getValue();
+
+            // Create a data point for each mood
+            XYChart.Data<Number, Number> bubble = new XYChart.Data<>(xIndex++, count, count * 2); // Radius scales with frequency
+            styleBubble(bubble, mood); // Apply color based on mood
+            series.getData().add(bubble);
+        }
+
+        bubbleChart.getData().add(series);
+
+        VBox chartLayout = new VBox(10);
+        chartLayout.setPadding(new Insets(10));
+        chartLayout.getChildren().add(bubbleChart);
+
+        Scene chartScene = new Scene(chartLayout, 800, 600);
+        stage.setScene(chartScene);
+        stage.show();
+    }
+
+    private void styleBubble(XYChart.Data<Number, Number> bubble, String mood) {
+        String color = moodColors.getOrDefault(mood, "#cccccc"); // Default gray if mood not found
+        bubble.getNode().setStyle("-fx-background-color: " + color + ", white; -fx-border-color: black;");
+    }
+
+    private Map<String, String> initializeMoodColors() {
+        Map<String, String> colors = new HashMap<>();
+        colors.put("Happy 😊", "#ffeb3b"); // Yellow
+        colors.put("Sad 😢", "#2196f3");  // Blue
+        colors.put("Neutral 😐", "#9e9e9e"); // Gray
+        colors.put("Content", "#4caf50"); // Green
+        colors.put("Stressed", "#f44336"); // Red
+        colors.put("Excited", "#ff9800"); // Orange
+        colors.put("Tired", "#3f51b5"); // Indigo
+        colors.put("Angry", "#d32f2f"); // Deep Red
+        return colors;
     }
 
     private void showAlert(Alert.AlertType type, String title, String message) {
@@ -117,6 +144,8 @@ public class MoodTracker {
         alert.showAndWait();
     }
 }
+
+
 
 
 
