@@ -15,22 +15,24 @@ import javafx.stage.Stage;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class demo1 extends Application {
 
     private static final String IMAGE_STORAGE_DIR = "data/images/";
-
     private final ObservableList<DiaryEntryWithImage> diaryEntries = FXCollections.observableArrayList();
     private final ObservableList<RecycleBinEntry> recycleBin = FXCollections.observableArrayList();
+
     private final UserLoginRegistration userSystem = new UserLoginRegistration();
     private final MotivationalQuotes motivationalQuotes = new MotivationalQuotes();
     private final RecycleBinFeature recycleBinFeature = new RecycleBinFeature(recycleBin);
-    private final MoodTracker moodTracker = new MoodTracker(diaryEntries);
     private final SearchManager searchManager = new SearchManager(diaryEntries);
+    private final MoodTracker moodTracker = new MoodTracker(diaryEntries);
 
     private String currentUser;
+    private LocalDateTime entryTime;
 
     public static void main(String[] args) {
         launch(args);
@@ -68,6 +70,7 @@ public class demo1 extends Application {
     }
 
     private void loadDiaryEntries(Stage primaryStage) {
+        diaryEntries.clear();
         diaryEntries.addAll(DiaryPersistence.loadEntriesFromFile(currentUser));
 
         VBox layout = new VBox(10);
@@ -100,10 +103,8 @@ public class demo1 extends Application {
                     setText(null);
                     setGraphic(null);
                 } else {
-                    // Include title and date in the display
-                    String formattedText = String.format("%s\nDate: %s", item.getTitle(), item.getFormattedEntryTime());
-                    setText(formattedText);
-
+                    // Display title and date
+                    setText(item.getTitle() + "\nDate: " + item.getFormattedEntryTime());
                     if (!item.getImagePaths().isEmpty()) {
                         File imageFile = new File(IMAGE_STORAGE_DIR, item.getImagePaths().get(0));
                         if (imageFile.exists()) {
@@ -222,7 +223,11 @@ public class demo1 extends Application {
             if (title.isEmpty() || content.isEmpty() || mood == null) {
                 showAlert(Alert.AlertType.ERROR, "Validation Error", "All fields must be filled.");
             } else {
-                diaryEntries.add(new DiaryEntryWithImage(title, content, mood, new ArrayList<>(selectedImagePaths)));
+                diaryEntries.add(new DiaryEntryWithImage(title, content, mood, new ArrayList<>(selectedImagePaths), entryTime));
+
+                // Save entries immediately after adding
+                DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries));
+
                 dialog.close();
             }
         });
@@ -298,6 +303,10 @@ public class demo1 extends Application {
                 entry.setContent(content);
                 entry.setMood(mood);
                 entry.setImagePaths(new ArrayList<>(selectedImagePaths));
+
+                // Save entries immediately after adding
+                DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries));
+
                 dialog.close();
             }
         });

@@ -11,14 +11,8 @@ import java.util.List;
 
 public class DiaryPersistence {
     private static final String DATA_DIR = "data";
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    /**
-     * Load diary entries from a file for the specified user.
-     *
-     * @param username The username of the user whose entries are to be loaded.
-     * @return An ObservableList of diary entries.
-     */
     public static ObservableList<DiaryEntryWithImage> loadEntriesFromFile(String username) {
         File dataDir = new File(DATA_DIR);
         if (!dataDir.exists()) {
@@ -33,16 +27,14 @@ public class DiaryPersistence {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     String[] parts = line.split(",", -1); // Split by commas, allow empty values
-                    if (parts.length >= 5) { // Ensure all necessary fields are present
-                        LocalDateTime entryTime = LocalDateTime.parse(parts[0], DATE_TIME_FORMATTER);
-                        String title = parts[1];
-                        String content = parts[2];
-                        String mood = parts[3];
-                        String[] imagePaths = parts[4].isEmpty() ? new String[0] : parts[4].split(";");
+                    if (parts.length >= 5) { // Ensure all fields are present
+                        String title = parts[0];
+                        String content = parts[1];
+                        String mood = parts[2];
+                        LocalDateTime entryTime = LocalDateTime.parse(parts[4], DATE_FORMATTER);
+                        String[] imagePaths = parts[3].equals("null") ? new String[0] : parts[3].split(";");
 
-                        DiaryEntryWithImage entry = new DiaryEntryWithImage(title, content, mood, List.of(imagePaths));
-                        entry.setEntryTime(entryTime); // Set the loaded date
-                        entries.add(entry);
+                        entries.add(new DiaryEntryWithImage(title, content, mood, List.of(imagePaths), entryTime));
                     }
                 }
             } catch (IOException e) {
@@ -53,12 +45,6 @@ public class DiaryPersistence {
         return entries;
     }
 
-    /**
-     * Save diary entries to a file for the specified user.
-     *
-     * @param username The username of the user whose entries are to be saved.
-     * @param entries  The list of diary entries to save.
-     */
     public static void saveEntriesToFile(String username, List<DiaryEntryWithImage> entries) {
         File dataDir = new File(DATA_DIR);
         if (!dataDir.exists()) {
@@ -71,11 +57,11 @@ public class DiaryPersistence {
             for (DiaryEntryWithImage entry : entries) {
                 String imagePaths = String.join(";", entry.getImagePaths()); // Join image paths with semicolons
                 writer.write(String.format("%s,%s,%s,%s,%s\n",
-                        entry.getFormattedEntryTime(), // Save the entry date
                         sanitize(entry.getTitle()),
                         sanitize(entry.getContent()),
                         sanitize(entry.getMood()),
-                        sanitize(imagePaths)
+                        sanitize(imagePaths),
+                        entry.getEntryTime().format(DATE_FORMATTER)
                 ));
             }
         } catch (IOException e) {
@@ -83,12 +69,6 @@ public class DiaryPersistence {
         }
     }
 
-    /**
-     * Sanitize input to avoid issues with commas and newlines in CSV.
-     *
-     * @param input The string to sanitize.
-     * @return A sanitized string.
-     */
     private static String sanitize(String input) {
         if (input == null) {
             return "";
@@ -96,6 +76,8 @@ public class DiaryPersistence {
         return input.replace(",", "\\,").replace("\n", "\\n");
     }
 }
+
+
 
 
 
