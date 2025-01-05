@@ -32,7 +32,6 @@ public class demo1 extends Application {
     private final MoodTracker moodTracker = new MoodTracker(diaryEntries);
 
     private String currentUser;
-    private LocalDateTime entryTime;
 
     public static void main(String[] args) {
         launch(args);
@@ -103,7 +102,6 @@ public class demo1 extends Application {
                     setText(null);
                     setGraphic(null);
                 } else {
-                    // Display title and date
                     setText(item.getTitle() + "\nDate: " + item.getFormattedEntryTime());
                     if (!item.getImagePaths().isEmpty()) {
                         File imageFile = new File(IMAGE_STORAGE_DIR, item.getImagePaths().get(0));
@@ -223,9 +221,17 @@ public class demo1 extends Application {
             if (title.isEmpty() || content.isEmpty() || mood == null) {
                 showAlert(Alert.AlertType.ERROR, "Validation Error", "All fields must be filled.");
             } else {
-                diaryEntries.add(new DiaryEntryWithImage(title, content, mood, new ArrayList<>(selectedImagePaths), entryTime));
+                DiaryEntryWithImage newEntry = new DiaryEntryWithImage(
+                        title,
+                        content,
+                        mood,
+                        new ArrayList<>(selectedImagePaths),
+                        LocalDateTime.now() // Use the current timestamp
+                );
 
-                // Save entries immediately after adding
+                diaryEntries.add(newEntry);
+
+                // Save the updated list to file
                 DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries));
 
                 dialog.close();
@@ -304,24 +310,34 @@ public class demo1 extends Application {
                 entry.setMood(mood);
                 entry.setImagePaths(new ArrayList<>(selectedImagePaths));
 
-                // Save entries immediately after adding
+                // Save the updated list to file
                 DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries));
 
                 dialog.close();
             }
         });
 
-        layout.getChildren().addAll(new Label("Title:"), titleField, new Label("Content:"), contentArea, new Label("Mood:"), moodComboBox, quoteLabel, selectImagesButton, saveButton);
+
+        layout.getChildren().addAll(
+                new Label("Title:"), titleField,
+                new Label("Content:"), contentArea,
+                new Label("Mood:"), moodComboBox,
+                quoteLabel,
+                selectImagesButton,
+                saveButton
+        );
 
         Scene scene = new Scene(layout, 400, 500);
         dialog.setScene(scene);
         dialog.show();
     }
 
+
     private void deleteSelectedEntry(ListView<DiaryEntryWithImage> diaryListView) {
         DiaryEntryWithImage selectedEntry = diaryListView.getSelectionModel().getSelectedItem();
         if (selectedEntry != null) {
             recycleBinFeature.moveToRecycleBin(diaryEntries, selectedEntry);
+            DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries));
         }
     }
 
@@ -353,6 +369,8 @@ public class demo1 extends Application {
         Label moodLabel = new Label("Mood: " + entry.getMood());
         moodLabel.setStyle("-fx-font-size: 14px; -fx-font-style: italic;");
 
+        Label dateLabel = new Label("Date: " + entry.getFormattedEntryTime());
+
         TextArea contentArea = new TextArea(entry.getContent());
         contentArea.setWrapText(true);
         contentArea.setEditable(false);
@@ -372,13 +390,14 @@ public class demo1 extends Application {
         Button closeButton = createStyledButton("Close");
         closeButton.setOnAction(event -> dialog.close());
 
-        layout.getChildren().addAll(titleLabel, moodLabel, new Label("Content:"), contentArea, new Label("Images:"), imageBox, closeButton);
+        layout.getChildren().addAll(titleLabel, moodLabel, dateLabel, new Label("Content:"), contentArea, new Label("Images:"), imageBox, closeButton);
 
         Scene scene = new Scene(layout, 400, 600);
         dialog.setScene(scene);
         dialog.show();
     }
 }
+
 
 
 

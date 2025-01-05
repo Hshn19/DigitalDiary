@@ -8,14 +8,14 @@ import java.util.List;
 public class DiaryEntryWithImage implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private LocalDateTime entryTime; // Timestamp of the diary entry
+    private final LocalDateTime entryTime; // Timestamp of the diary entry
     private String title;
     private String content;
     private String mood;
     private List<String> imagePaths;
 
     public DiaryEntryWithImage(String title, String content, String mood, List<String> imagePaths, LocalDateTime entryTime) {
-        this.entryTime = entryTime != null ? entryTime : LocalDateTime.now(); // Use provided entryTime or fallback to current time
+        this.entryTime = entryTime != null ? entryTime : LocalDateTime.now(); // Use provided time or current time
         this.title = title;
         this.content = content;
         this.mood = mood;
@@ -28,10 +28,6 @@ public class DiaryEntryWithImage implements Serializable {
 
     public String getFormattedEntryTime() {
         return entryTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-    }
-
-    public void setEntryTime(LocalDateTime entryTime) {
-        this.entryTime = entryTime;
     }
 
     public String getTitle() {
@@ -71,6 +67,8 @@ public class DiaryEntryWithImage implements Serializable {
         return title + " (Date: " + getFormattedEntryTime() + ")";
     }
 }
+
+
 
 
 

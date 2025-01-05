@@ -4,6 +4,8 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -26,15 +28,19 @@ public class DiaryPersistence {
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    String[] parts = line.split(",", -1); // Split by commas, allow empty values
-                    if (parts.length >= 5) { // Ensure all fields are present
-                        String title = parts[0];
-                        String content = parts[1];
-                        String mood = parts[2];
-                        LocalDateTime entryTime = LocalDateTime.parse(parts[4], DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                        String[] imagePaths = parts[3].equals("null") ? new String[0] : parts[3].split(";");
+                    try {
+                        String[] parts = line.split(",", -1); // Split by commas, allow empty values
+                        if (parts.length >= 5) { // Ensure all fields are present
+                            String title = parts[0];
+                            String content = parts[1];
+                            String mood = parts[2];
+                            String[] imagePaths = parts[3].equals("null") ? new String[0] : parts[3].split(";");
+                            LocalDateTime entryTime = LocalDateTime.parse(parts[4], DATE_FORMATTER);
 
-                        entries.add(new DiaryEntryWithImage(title, content, mood, List.of(imagePaths), entryTime));
+                            entries.add(new DiaryEntryWithImage(title, content, mood, List.of(imagePaths), entryTime));
+                        }
+                    } catch (Exception e) {
+                        System.out.println("Error parsing entry: " + line + ". Skipping.");
                     }
                 }
             } catch (IOException e) {
@@ -52,6 +58,7 @@ public class DiaryPersistence {
         }
 
         File file = new File(dataDir, username + "_diary_entries.csv");
+        backupFile(file); // Backup the current file before saving
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             for (DiaryEntryWithImage entry : entries) {
@@ -61,11 +68,24 @@ public class DiaryPersistence {
                         sanitize(entry.getContent()),
                         sanitize(entry.getMood()),
                         sanitize(imagePaths),
-                        entry.getEntryTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                        entry.getEntryTime().format(DATE_FORMATTER)
                 ));
             }
+            System.out.println("Entries saved successfully. Total entries: " + entries.size());
         } catch (IOException e) {
             System.out.println("Error: Unable to save diary entries. Details: " + e.getMessage());
+        }
+    }
+
+    private static void backupFile(File file) {
+        if (file.exists()) {
+            File backup = new File(file.getParent(), file.getName() + ".bak");
+            try {
+                Files.copy(file.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                System.out.println("Backup created: " + backup.getPath());
+            } catch (IOException e) {
+                System.out.println("Error creating backup: " + e.getMessage());
+            }
         }
     }
 
@@ -76,6 +96,9 @@ public class DiaryPersistence {
         return input.replace(",", "\\,").replace("\n", "\\n");
     }
 }
+
+
+
 
 
 
