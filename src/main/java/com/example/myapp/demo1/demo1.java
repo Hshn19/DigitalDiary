@@ -221,22 +221,13 @@ public class demo1 extends Application {
             if (title.isEmpty() || content.isEmpty() || mood == null) {
                 showAlert(Alert.AlertType.ERROR, "Validation Error", "All fields must be filled.");
             } else {
-                DiaryEntryWithImage newEntry = new DiaryEntryWithImage(
-                        title,
-                        content,
-                        mood,
-                        new ArrayList<>(selectedImagePaths),
-                        LocalDateTime.now() // Use the current timestamp
-                );
-
+                DiaryEntryWithImage newEntry = new DiaryEntryWithImage(title, content, mood, new ArrayList<>(selectedImagePaths), LocalDateTime.now());
                 diaryEntries.add(newEntry);
-
-                // Save the updated list to file
-                DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries));
-
+                DiaryPersistence.saveEntriesToFile(currentUser, new ArrayList<>(diaryEntries)); // Ensure save is here
                 dialog.close();
             }
         });
+
 
         layout.getChildren().addAll(new Label("Title:"), titleField, new Label("Content:"), contentArea, new Label("Mood:"), moodComboBox, quoteLabel, selectImagesButton, saveButton);
 

@@ -16,31 +16,27 @@ public class DiaryPersistence {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public static ObservableList<DiaryEntryWithImage> loadEntriesFromFile(String username) {
-        File dataDir = new File(DATA_DIR);
-        if (!dataDir.exists()) {
-            dataDir.mkdirs(); // Create the directory if it doesn't exist
-        }
-
-        File file = new File(dataDir, username + "_diary_entries.csv");
         ObservableList<DiaryEntryWithImage> entries = FXCollections.observableArrayList();
+        File file = new File(DATA_DIR, username + "_diary_entries.csv");
 
         if (file.exists()) {
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     try {
-                        String[] parts = line.split(",", -1); // Split by commas, allow empty values
-                        if (parts.length >= 5) { // Ensure all fields are present
+                        String[] parts = parseCSVLine(line);
+                        if (parts.length >= 5) {
                             String title = parts[0];
                             String content = parts[1];
                             String mood = parts[2];
-                            String[] imagePaths = parts[3].equals("null") ? new String[0] : parts[3].split(";");
-                            LocalDateTime entryTime = LocalDateTime.parse(parts[4], DATE_FORMATTER);
+                            String[] imagePaths = parts[3].isEmpty() ? new String[0] : parts[3].split(";");
+                            LocalDateTime entryTime = LocalDateTime.parse(parts[4], DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
                             entries.add(new DiaryEntryWithImage(title, content, mood, List.of(imagePaths), entryTime));
                         }
                     } catch (Exception e) {
-                        System.out.println("Error parsing entry: " + line + ". Skipping.");
+                        System.err.println("Error parsing entry: " + line + ". Reason: " + e.getMessage());
+
                     }
                 }
             } catch (IOException e) {
@@ -50,6 +46,31 @@ public class DiaryPersistence {
 
         return entries;
     }
+
+    private static String[] parseCSVLine(String line) {
+        List<String> tokens = new ArrayList<>();
+        StringBuilder currentToken = new StringBuilder();
+        boolean inEscape = false;
+
+        for (char c : line.toCharArray()) {
+            if (inEscape) {
+                currentToken.append(c); // Add escaped character
+                inEscape = false;
+            } else if (c == '\\') {
+                inEscape = true; // Start of escape sequence
+            } else if (c == ',') {
+                tokens.add(currentToken.toString());
+                currentToken.setLength(0); // Reset for the next token
+            } else {
+                currentToken.append(c);
+            }
+        }
+        tokens.add(currentToken.toString()); // Add the last token
+
+        return tokens.toArray(new String[0]);
+    }
+
+
 
     public static void saveEntriesToFile(String username, List<DiaryEntryWithImage> entries) {
         File dataDir = new File(DATA_DIR);
