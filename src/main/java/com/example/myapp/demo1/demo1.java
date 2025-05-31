@@ -54,6 +54,9 @@ public class demo1 extends Application {
         themeCssFiles.put("Dark", "/themes/dark.css");
         themeCssFiles.put("Space", "/themes/space.css");
         themeCssFiles.put("JMetro", "/themes/jmetro.css");
+        themeCssFiles.put("Materialfx", "/themes/materialfx.css");
+        themeCssFiles.put("Ghibli", "/themes/ghibli.css");
+
 
         primaryStage.setTitle("Digital Diary");
 
