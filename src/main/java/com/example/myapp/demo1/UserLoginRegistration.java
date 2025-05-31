@@ -1,7 +1,9 @@
 package com.example.myapp.demo1;
 
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -18,25 +20,30 @@ public class UserLoginRegistration {
         loadUsers();
     }
 
-    /**
-     * Opens the registration screen.
-     */
     public void openRegistrationScreen(Stage primaryStage) {
         Stage registerStage = new Stage();
         registerStage.setTitle("Register");
 
         VBox layout = new VBox(10);
+        layout.setPadding(new Insets(10));
+
+        Label registerLabel = new Label("Register a new account");
+        registerLabel.getStyleClass().add("title-label");
 
         TextField emailField = new TextField();
         emailField.setPromptText("Email");
+        emailField.getStyleClass().add("text-field");
 
         TextField usernameField = new TextField();
         usernameField.setPromptText("Username");
+        usernameField.getStyleClass().add("text-field");
 
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText("Password");
+        passwordField.getStyleClass().add("password-field");
 
         Button registerButton = new Button("Register");
+        registerButton.getStyleClass().add("styled-button");
         registerButton.setOnAction(event -> {
             String email = emailField.getText().trim();
             String username = usernameField.getText().trim();
@@ -55,30 +62,39 @@ public class UserLoginRegistration {
             }
         });
 
-        layout.getChildren().addAll(new Label("Register a new account"), emailField, usernameField, passwordField, registerButton);
+        Button cancelButton = new Button("Cancel");
+        cancelButton.getStyleClass().add("styled-button");
+        cancelButton.setOnAction(event -> registerStage.close());
+
+        HBox buttonBox = new HBox(10, registerButton, cancelButton);
+        layout.getChildren().addAll(registerLabel, emailField, usernameField, passwordField, buttonBox);
 
         Scene scene = new Scene(layout, 300, 200);
+        scene.getStylesheets().add(getClass().getResource("/themes/light.css").toExternalForm());
         registerStage.setScene(scene);
         registerStage.show();
     }
 
-    /**
-     * Opens the login screen.
-     */
     public String openLoginScreen(Stage primaryStage) {
         Stage loginStage = new Stage();
         loginStage.setTitle("Login");
 
         VBox layout = new VBox(10);
+        layout.setPadding(new Insets(10));
+
+        Label loginLabel = new Label("Login");
+        loginLabel.getStyleClass().add("title-label");
 
         TextField emailOrUsernameField = new TextField();
         emailOrUsernameField.setPromptText("Email or Username");
+        emailOrUsernameField.getStyleClass().add("text-field");
 
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText("Password");
+        passwordField.getStyleClass().add("password-field");
 
         Button loginButton = new Button("Login");
-
+        loginButton.getStyleClass().add("styled-button");
         final String[] loggedInUser = {null};
         loginButton.setOnAction(event -> {
             String emailOrUsername = emailOrUsernameField.getText().trim();
@@ -90,7 +106,7 @@ public class UserLoginRegistration {
                 User user = users.get(emailOrUsername);
                 if (user != null && user.getPassword().equals(password)) {
                     showAlert(Alert.AlertType.INFORMATION, "Login Success", "Welcome, " + user.getUsername() + "!");
-                    loggedInUser[0] = user.getUsername(); // Store the username of the logged-in user
+                    loggedInUser[0] = user.getUsername();
                     loginStage.close();
                 } else {
                     showAlert(Alert.AlertType.ERROR, "Login Error", "Invalid credentials.");
@@ -98,18 +114,21 @@ public class UserLoginRegistration {
             }
         });
 
-        layout.getChildren().addAll(new Label("Login"), emailOrUsernameField, passwordField, loginButton);
+        Button cancelButton = new Button("Cancel");
+        cancelButton.getStyleClass().add("styled-button");
+        cancelButton.setOnAction(event -> loginStage.close());
+
+        HBox buttonBox = new HBox(10, loginButton, cancelButton);
+        layout.getChildren().addAll(loginLabel, emailOrUsernameField, passwordField, buttonBox);
 
         Scene scene = new Scene(layout, 300, 200);
+        scene.getStylesheets().add(getClass().getResource("/themes/light.css").toExternalForm());
         loginStage.setScene(scene);
         loginStage.showAndWait();
 
-        return loggedInUser[0]; // Return the logged-in username
+        return loggedInUser[0];
     }
 
-    /**
-     * Loads users from a file.
-     */
     private void loadUsers() {
         File file = new File(USER_DATA_FILE);
         if (file.exists()) {
@@ -122,9 +141,6 @@ public class UserLoginRegistration {
         }
     }
 
-    /**
-     * Saves users to a file.
-     */
     private void saveUsers() {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(USER_DATA_FILE))) {
             oos.writeObject(users);
@@ -133,9 +149,6 @@ public class UserLoginRegistration {
         }
     }
 
-    /**
-     * Shows an alert dialog.
-     */
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
         alert.setTitle(title);
@@ -143,9 +156,6 @@ public class UserLoginRegistration {
         alert.showAndWait();
     }
 
-    /**
-     * User class for storing user data.
-     */
     static class User implements Serializable {
         private final String email;
         private final String username;
@@ -170,6 +180,7 @@ public class UserLoginRegistration {
         }
     }
 }
+
 
 
 
