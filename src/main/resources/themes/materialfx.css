@@ -1,0 +1,119 @@
+.root {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #212121;
+}
+
+.vbox {
+    -fx-background-color: #ffffff;
+    -fx-padding: 10;
+}
+
+.label {
+    -fx-text-fill: #212121;
+    -fx-font-size: 14px;
+}
+
+.title-label {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #212121;
+}
+
+.welcome-label {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #212121;
+}
+
+.theme-label {
+    -fx-font-size: 14px;
+    -fx-text-fill: #212121;
+}
+
+.mood-label, .date-label, .content-label, .images-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #212121;
+}
+
+.quote-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #757575;
+    -fx-font-style: italic;
+}
+
+.button, .styled-button {
+    -fx-background-color: #3f51b5;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 8 16;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-color: #303f9f;
+    -fx-border-width: 1.5;
+}
+
+.button:hover, .styled-button:hover {
+    -fx-background-color: #5c6bc0;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 8 16;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-color: #303f9f;
+    -fx-border-width: 1.5;
+    -fx-cursor: hand;
+}
+
+.text-field, .password-field {
+    -fx-background-color: #fafafa;
+    -fx-text-fill: #212121;
+    -fx-prompt-text-fill: #757575;
+    -fx-border-color: #3f51b5;
+    -fx-border-width: 1.5;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+}
+
+.text-area {
+    -fx-background-color: #fafafa;
+    -fx-text-fill: #212121;
+    -fx-prompt-text-fill: #757575;
+    -fx-border-color: #3f51b5;
+    -fx-border-width: 1.5;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+}
+
+.combo-box {
+    -fx-background-color: #fafafa;
+    -fx-text-fill: #212121;
+    -fx-border-color: #3f51b5;
+    -fx-border-width: 1.5;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+}
+
+.combo-box .list-cell {
+    -fx-text-fill: #212121;
+}
+
+.list-view {
+    -fx-background-color: #fafafa;
+    -fx-border-color: #3f51b5;
+    -fx-border-width: 1.5;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+}
+
+.list-view .list-cell {
+    -fx-background-color: #fafafa;
+    -fx-text-fill: #212121;
+}
+
+.list-view .list-cell:filled:hover {
+    -fx-background-color: #e8eaf6;
+    -fx-cursor: hand;
+}
